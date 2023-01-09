@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.fusion.user.service.UserMapper">
+
+<insert id="insUser" parameterType="userVo">
+	INSERT INTO TB_USER
+	(
+	 user_id
+	, id
+	, pwd
+	, ncnm
+	, regist_dt
+	)
+	VALUES
+	(
+	USER_ID_SEQ.nextval
+	, #{id}
+	, #{pwd}
+	, #{ncnm}
+	, sysdate
+	)
+</insert>
+
+<!-- 로그인 정보 -->
+<select id="getLoginInfo" resultType="userVo" parameterType="userVo">
+    SELECT USER_ID
+    	 , ID
+          	 , PWD
+          	 , NCNM
+          	 , REGIST_DT
+          	 , UPDATE_DT           	
+         FROM TB_USER 
+        WHERE ID = #{id}
+</select>
+
+<!-- 아이디 체크 -->
+<select id="checkId" resultType="Integer" parameterType="String">
+    SELECT COUNT(ID)
+    FROM TB_USER
+    WHERE ID = #{checkId};
+</select>
+
+<select id="checkPwd" resultType="Integer" parameterType="userVo">
+    SELECT COUNT(ID)           	
+         FROM TB_USER 
+        WHERE ID = #{id}
+        AND PWD = #{pwd}
+</select>
+
+</mapper>

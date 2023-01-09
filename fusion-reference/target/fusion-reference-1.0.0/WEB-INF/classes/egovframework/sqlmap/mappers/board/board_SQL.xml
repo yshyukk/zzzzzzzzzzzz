@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.fusion.board.service.BoardMapper">
+	
+	<select id="getBoardList" resultType="boardVo" parameterType="boardVo">
+	    SELECT ROWNUM AS BOARD_NUM
+	    	 , A.BOARD_ID
+           	 , A.TITLE
+           	 , A.CONTENT
+           	 , NCNM AS ID
+           	 , A.BOARD_CNT
+           	 , A.DEL_YN
+           	 , A.REGIST_DT
+           	 , A.UPDATE_DT
+          FROM TB_BOARD A
+          	 , TB_USER B 
+         WHERE DEL_YN = 'N'
+           AND A.WRITER = B.USER_ID 
+         ORDER BY ROWNUM DESC
+	</select>
+
+	<insert id="insBoardPost" parameterType="boardVo">
+		INSERT INTO TB_BOARD 
+		VALUES (
+				SEQ_BOARD.NEXTVAL
+			   ,#{title}
+			   ,#{content}
+			   ,#{writer}
+			   ,0
+			   ,'N'
+			   ,TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS')
+			   ,TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS')
+			   )
+	</insert>
+
+	<select id="getBoardPost" resultType="boardVo" parameterType="boardVo">
+	    SELECT A.BOARD_ID
+           	 , A.TITLE
+           	 , A.CONTENT
+           	 , A.WRITER
+           	 , (SELECT NCNM FROM TB_USER WHERE USER_ID = A.WRITER ) AS ID
+           	 , A.BOARD_CNT
+           	 , A.DEL_YN
+           	 , A.REGIST_DT
+           	 , A.UPDATE_DT
+          FROM TB_BOARD A
+         WHERE DEL_YN = 'N'
+           AND BOARD_ID = #{board_id}
+	</select>
+
+	<update id="updBoardCnt" parameterType="boardVo">
+		UPDATE TB_BOARD
+		   SET BOARD_CNT = (BOARD_CNT + 1)
+		 WHERE BOARD_ID = #{board_id}
+	</update>
+	
+	<update id="updBoardPost" parameterType="boardVo">
+		UPDATE TB_BOARD
+		   SET TITLE = #{title}
+		     , CONTENT = #{content}
+		 WHERE BOARD_ID = #{board_id}
+	</update>
+
+	<delete id="delBoardPost" parameterType="boardVo">
+		DELETE TB_BOARD
+		 WHERE BOARD_ID = #{board_id}
+	</delete>
+
+</mapper>

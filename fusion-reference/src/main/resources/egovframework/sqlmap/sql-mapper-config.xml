@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+    <typeAliases>
+		<typeAlias alias="boardVo" type="egovframework.fusion.board.vo.BoardVO"/>
+		<typeAlias alias="userVo" type="egovframework.fusion.user.vo.UserVO"/>
+		<typeAlias alias="imgBoardVo" type="egovframework.fusion.imgboard.vo.ImgBoardVO"/>
+		<typeAlias alias="imgVo" type="egovframework.fusion.imgboard.vo.ImgVO"/>
+		<typeAlias alias="imgBoardLikeVo" type="egovframework.fusion.imgboard.vo.ImgBoardLikeVO"/>
+		<typeAlias alias="imgBoardLikeCntVo" type="egovframework.fusion.imgboard.vo.ImgBoardLikeCntVO"/>
+		<typeAlias alias="imgBoardCommentVo" type="egovframework.fusion.imgboard.vo.ImgBoardCommentVO"/>
+		<typeAlias alias="imgBoardCntVo" type="egovframework.fusion.imgboard.vo.ImgBoardCntVO"/>
+		<typeAlias alias="hashTagVo" type="egovframework.fusion.imgboard.vo.HashTagVO"/>
+		<typeAlias alias="pagingVo" type="egovframework.fusion.comm.vo.PagingVO"/>
+		<typeAlias alias="hashTagUpdateVo" type="egovframework.fusion.imgboard.vo.HashTagUpdateVO"/>
+		<typeAlias alias="ImgBoardListDTO" type="egovframework.fusion.imgboard.dto.ImgBoardListDTO"/>		
+				
+    </typeAliases>
+</configuration>

@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="egovframework.fusion.board.service.BoardMapper">
+	<!-- 게시글 조회 -->
+	<select id="getBoardList" resultType="boardVo" parameterType="boardVo">  
+       SELECT FB.* 
+       FROM (
+        	   SELECT ROW_NUMBER() OVER (ORDER BY FA.board_id) AS BOARD_NUM
+        	   		, FA.*
+			   FROM(
+			   	 	  SELECT LPAD(' ',2*(LEVEL-1)) || ROWNUM AS row_num
+		         		   , BOARD_ID
+		         		   , A.REP_PARENT
+		         		   , LEVEL
+		           		   , A.TITLE AS TITLE
+		           		   , A.CONTENT
+		           		   , NCNM AS ID
+		           		   , A.BOARD_CNT
+		           		   , A.DEL_YN
+		           		   , A.WRITER
+		           		   , A.REGIST_DT
+		           		   , A.UPDATE_DT
+	           		  FROM TB_BOARD A
+	          	    	 , TB_USER B 
+	          	 	  WHERE DEL_YN = 'N'
+	             		AND A.WRITER = B.ID
+	             		AND A.BOARD_TYPE IN (1, 2)
+	           		  START WITH REP_PARENT = 0
+			   	  	  CONNECT BY PRIOR BOARD_ID = REP_PARENT
+			   		  ORDER SIBLINGS BY BOARD_ID DESC ) FA
+			    ORDER BY BOARD_NUM DESC ) FB
+        WHERE row_num >=#{startIndex} and row_num <![CDATA[<= ]]>#{endIndex} 
+
+       
+	</select>
+
+	<!-- 게시글 등록 -->
+	<insert id="insBoardPost" parameterType="boardVo">
+		INSERT INTO TB_BOARD 
+		VALUES (
+				SEQ_BOARD.NEXTVAL
+			   ,#{title}
+			   ,#{content}
+			   ,#{writer}
+			   ,0
+			   ,'N'
+			   ,TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+			   ,TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+			   ,#{board_type}
+			   ,#{rep_parent}
+			   )
+	</insert>
+	
+	 <!-- 게시글 상세조회 -->
+	<select id="getBoardPost" resultType="boardVo" parameterType="boardVo">
+	    SELECT A.BOARD_ID
+           	 , A.TITLE
+           	 , A.CONTENT
+           	 , A.WRITER
+           	 , (SELECT NCNM FROM TB_USER WHERE ID = A.WRITER ) AS ID
+           	 , A.BOARD_CNT
+           	 , A.DEL_YN
+           	 , A.REGIST_DT
+           	 , A.UPDATE_DT
+          FROM TB_BOARD A
+         WHERE DEL_YN = 'N'
+           AND BOARD_ID = #{board_id}
+         ORDER BY A.REGIST_DT ASC
+	</select>
+	
+	<!-- 게시글 수정 -->
+	<update id="updBoardPost" parameterType="boardVo">
+		UPDATE TB_BOARD
+		   SET TITLE = #{title}
+		     , CONTENT = #{content}
+		 WHERE BOARD_ID = #{board_id}
+	</update>
+	
+	<!-- 게시글 삭제 여러개 (조회여부 수정)-->
+	<update id="delBoardList" parameterType="java.util.List">
+	   UPDATE TB_BOARD
+       SET DEL_YN = 'Y'
+       WHERE BOARD_ID  IN (
+       	  SELECT BOARD_ID
+       	  FROM TB_BOARD
+       	  START WITH 
+       	  <foreach collection="list"  item="board_id" separator="OR" >
+       	  BOARD_ID IN #{board_id}
+       	  </foreach>
+       	  CONNECT BY PRIOR BOARD_ID = REP_PARENT
+         )
+	</update>
+	
+	<!--  게시글 하나만 삭제 -->
+	<update id="delOneBoardList" parameterType="boardVo">
+	   UPDATE TB_BOARD
+       SET DEL_YN = 'Y'
+       WHERE BOARD_ID  IN (
+       	  SELECT BOARD_ID
+       	  FROM TB_BOARD
+       	  START WITH      	
+       	  BOARD_ID =#{board_id}
+       	  CONNECT BY PRIOR BOARD_ID = REP_PARENT
+       )
+	</update>
+	
+	<!-- paging -->
+	<select id="selectBoardTotal" resultType="Integer" parameterType="boardVo">
+		SELECT COUNT(BOARD_ID)
+		FROM TB_BOARD
+		WHERE DEL_YN = 'N'
+		  AND BOARD_TYPE IN (1, 2)
+	</select>
+	
+	<!-- 검색 결과 갯수 가져오기 -->
+	<select id="searchResultTotal" resultType="Integer" parameterType="boardVo">
+		SELECT  COUNT(*)
+	         FROM TB_BOARD A
+	          	 , TB_USER B 
+	         WHERE DEL_YN = 'N'
+	           AND A.WRITER = B.ID
+	           <if test="search == 'title'">
+	           AND A.TITLE LIKE '%'||#{searchText}||'%'
+	           </if>
+	           <if test="search == 'writer'">
+	           AND NCNM LIKE '%'||#{searchText}||'%'
+	           </if>
+	           <if test="search == 'content'">
+	           AND A.CONTENT LIKE '%'||#{searchText}||'%'
+	           </if>
+	           <if test="search == 'all'">
+	           AND ( A.TITLE LIKE '%'||#{searchText}||'%'
+	           		 OR NCNM LIKE '%'||#{searchText}||'%'
+	           		 OR A.CONTENT LIKE '%'||#{searchText}||'%')
+	           </if>
+	</select>
+	
+	<!-- 최근 공지글만 가져오기 -->
+	<select id="getNoticeList" resultType="boardVo" parameterType="boardVo">
+		 SELECT ROWNUM as BOARD_NUM, a.* 
+         FROM (
+	         SELECT  A.BOARD_ID
+	           	 , A.TITLE
+	           	 , A.CONTENT
+	           	 , NCNM AS ID
+	           	 , A.BOARD_CNT
+	           	 , A.DEL_YN
+	           	 , A.REGIST_DT
+	           	 , A.UPDATE_DT
+	           	 , A.BOARD_TYPE
+	          FROM TB_BOARD A
+	          	 , TB_USER B 
+	          WHERE DEL_YN = 'N'
+	           AND A.WRITER = B.ID
+	           AND A.BOARD_TYPE = 2
+	           ORDER BY BOARD_ID DESC
+	        	) a
+		 WHERE ROWNUM = 1; 
+	           
+	</select>
+	
+	<!-- 카운트 테이블에 정보 등록 -->
+	<insert id="insCntInfo" parameterType="boardVo">
+		
+		INSERT INTO TB_BOARDCNT 
+		VALUES (
+			    BOARDCNT_SEQ.NEXTVAL
+			    ,#{board_id}
+			    ,#{cnt_user}
+			    ,TO_CHAR(SYSDATE + (INTERVAL '24' HOUR), 'YYYY-MM-DD HH24:MI:SS')
+			    )				
+	</insert>
+	<!-- 카운트 가져오기 -->
+	<select id="updBoardCnt" resultType="Integer" parameterType="boardVo">
+		SELECT count(1)
+		FROM
+		(
+			SELECT BOARD_ID, CNT_USER, LIMIT_DT 
+				FROM TB_BOARDCNT
+				WHERE 
+				BOARD_ID = #{board_id}
+			AND CNT_USER = #{cnt_user}
+			AND to_char(sysdate, 'yyyy-mm-dd hh24:mi:ss') > LIMIT_DT
+		);
+			
+	</select>
+	
+	<!-- 카운트 업데이트 -->
+	<update id="upCnt" parameterType="boardVo">
+		<selectKey resultType="integer" keyProperty="board_cnt" order="BEFORE">
+           select count(1)+1 from tb_boardcnt where board_id = #{board_id};  
+         </selectKey>   
+		UPDATE TB_BOARD
+		   SET BOARD_CNT = #{board_cnt}
+		 WHERE BOARD_ID = #{board_id}
+	</update>
+
+	<!--댓글 입력  -->
+	<insert id="insCommInfo" parameterType="boardVo">
+		
+		INSERT INTO COMMENTS
+		(COMM_ID,
+		COMM_CONTENT,
+		COMM_WRITER,
+		COMM_REGIST_DT,
+		COMM_PARENT,
+		BOARD_ID
+		
+		)
+		VALUES(
+			COMM_PK_SEQ.NEXTVAL,
+			#{comm_content},
+			#{comm_writer},
+			sysdate,
+			#{comm_parent},
+			#{board_id}	
+		)			
+	</insert>
+	<!-- 댓글 수정 -->
+	<update id="upCommInfo" parameterType="boardVo">
+		UPDATE COMMENTS
+		   SET COMM_CONTENT = #{comm_content}
+		     , COMM_REGIST_DT = SYSDATE
+		 WHERE COMM_ID = #{comm_id}
+	</update>
+	
+	<!-- 댓글 삭제 -->
+	<update id="commDelDate" parameterType="Integer">
+		UPDATE COMMENTS
+        SET DEL_YN = 'Y'
+        WHERE COMM_ID IN (
+       	  	SELECT COMM_ID
+       	  	FROM COMMENTS
+       	  	START WITH COMM_ID = #{comm_id}
+       	  	CONNECT BY PRIOR COMM_ID = COMM_PARENT
+         )
+	</update>
+	
+	<!-- 댓글 유효성 검사 : 댓글 번호로 유저 아이디 조회-->
+	<select id="commIdConf" resultType="String" parameterType="boardVo">
+			SELECT COMM_WRITER
+			FROM COMMENTS
+			WHERE COMM_ID = #{comm_id}
+	</select>
+	
+	<!-- 댓글 조회 -->
+	<select id="getCommnets" resultType="boardVo" parameterType="boardVo">
+		
+		SELECT * 
+		FROM(
+			 SELECT ROWNUM 
+				 , COMM_ID
+				 , COMM_CONTENT
+				 , COMM_WRITER
+				 ,  to_char(COMM_REGIST_DT, 'yyyy-mm-dd hh24:mi:ss') as COMM_REGIST_DT
+				 , COMM_PARENT
+				 , level
+				 , board_id 
+			 FROM COMMENTS
+			 WHERE board_id = #{board_id}
+			 AND DEL_YN = 'N'
+			 START WITH COMM_PARENT = 0
+			 CONNECT BY PRIOR COMM_ID = COMM_PARENT
+			 ORDER SIBLINGS  BY COMM_ID DESC
+		)
+		ORDER BY ROWNUM ASC 
+	</select>
+</mapper>

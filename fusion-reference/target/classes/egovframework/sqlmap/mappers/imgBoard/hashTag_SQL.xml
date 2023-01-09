@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="egovframework.fusion.imgboard.service.HashTagMapper">
+
+	<!-- 해시태그 출력 -->
+	<select id="getHashTagInfo" resultType="hashTagVo" parameterType="hashTagVo">
+	 	SELECT HASHTAG_ID AS hashTagId
+			 , IMGBOARD_ID AS imgBoardId
+			 , HASHTAG	AS tag
+			 , REGIST_DT AS hashTagRegistDt
+			 , UPDATE_DT AS hashTagUpdateDt
+			 , DEL_YN AS delYn
+		FROM TB_HASHTAG 
+		WHERE DEL_YN = 'N'
+	</select>
+
+	<!-- 해시태그 정보 등록 -->
+	<insert id="insHashTag" parameterType="hashTagVo">
+	<selectKey resultType="integer" keyProperty="imgBoardId" order="BEFORE">
+		SELECT MAX(IMGBOARD_ID)
+		FROM TB_IMGBOARD
+		WHERE IMGBOARD_WRITER = #{hashTagWriter}
+		ORDER BY IMGBOARD_REGIST_DT DESC
+	</selectKey>
+		INSERT INTO TB_HASHTAG
+			  (
+			   HASHTAG_ID
+			,  IMGBOARD_ID
+			,  HASHTAG
+			,  REGIST_DT
+			,  DEL_YN
+			   )
+		VALUES 
+		<foreach collection="hashTag" item="item" separator=",">	
+				(
+				HASHTAG_SEQ.NEXTVAL
+			   ,#{imgBoardId}
+			   ,#{item}
+			   ,SYSDATE
+			   ,'N'
+			   )
+		</foreach>		   
+	</insert>
+	
+	<!-- 해시태그 단건조회(상세) -->
+	<select id="getHashTagDetailInfo" resultType="hashTagVo" parameterType="Integer">
+	 	SELECT HASHTAG_ID AS hashTagId
+			 , IMGBOARD_ID AS imgBoardId
+			 , HASHTAG	AS tag
+			 , REGIST_DT AS hashTagRegistDt
+			 , UPDATE_DT AS hashTagUpdateDt
+		FROM TB_HASHTAG 
+		WHERE IMGBOARD_ID = #{imgBoardId}
+		AND DEL_YN = 'N'
+	
+	</select>
+	
+	<!-- 해시태그 수정 -->
+	<!-- <update id="updateHashTag" parameterType="java.util.List">
+		<foreach collection="list" item="item" separator=";"  open="DECLARE BEGIN" close="; END;">
+		   UPDATE TB_HASHTAG
+		   SET 
+		   HASHTAG = #{item.hashTagContent}
+		   <where>
+		   HASHTAG_ID = #{item.hashTagId}
+		   AND DEL_YN='N'
+		   </where>
+	   </foreach>
+		      
+	</update>
+	 -->
+	 <update id="updateHashTag" parameterType="java.util.List">
+		<foreach collection="hashTag" item="item" separator="," open="DECLARE BEGIN" close="; END;">
+		   UPDATE TB_HASHTAG
+		   SET 
+		   imgBoardId = #{item.hashTagContent}
+		   <where>
+		   HASHTAG_ID = #{item.hashTagId}
+		   AND DEL_YN='N'
+		   </where>
+	   </foreach>
+		      
+	</update>
+	 
+	<!-- hashTag삭제 -->
+	<update id="delHashTag" parameterType="Integer">
+		   UPDATE TB_HASHTAG
+		   SET 
+		   DEL_YN = 'Y'
+		   WHERE
+		   IMGBOARD_ID = #{imgBoardId}
+		    
+	</update>
+
+</mapper>

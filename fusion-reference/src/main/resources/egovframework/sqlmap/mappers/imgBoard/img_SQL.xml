@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="egovframework.fusion.imgboard.service.ImgMapper">
+
+	<!-- 이미지 정보 가져오기:전체 -->
+	<select id="getImgInfo" resultType="imgVo" parameterType="imgVo">
+	    SELECT IMG_ID AS imgId
+           	 , IMG_ORIGINNAME AS imgOriginName
+           	 , IMG_SAVENAME AS imgSaveName
+           	 , IMG_SAVEPATH AS imgSavePath
+           	 , IMG_SIZE AS imgSize
+           	 , IMG_FORMAT AS imgFormat
+           	 , IMG_REGIST_DT AS imgRegisterDt
+           	 , DEL_YN AS delYn
+           	 , IMGBOARD_ID AS imgBoardId
+           	 , IMG_UPDATE_DT AS imgUpdateDt 
+         FROM TB_IMGBOARD_IMG
+         WHERE DEL_YN = 'N'
+	</select>
+
+
+	<!-- 이미지 정보 등록 -->
+	<insert id="insImg" >	
+		INSERT INTO TB_IMGBOARD_IMG 
+		VALUES
+		<foreach collection="list" item="item" index="index" separator=","> 
+			  (
+				IMGBOARD_IMG_SEQ.NEXTVAL
+			   ,#{item.imgOriginName}
+			   ,#{item.imgSaveName}
+			   ,#{item.imgSavePath}
+			   ,#{item.imgSize}
+			   ,#{item.imgFormat}
+			   ,SYSDATE
+			   ,'N'
+			   ,(SELECT MAX(IMGBOARD_ID)
+				 FROM TB_IMGBOARD
+				 WHERE IMGBOARD_WRITER = #{item.imgWriter}
+				)
+			   ,SYSDATE
+			   )
+		</foreach>
+	</insert>
+	
+	<!-- 이미지 정보 가져오기: 상세조회 -->
+	<select id="getImgDetailInfo" resultType="imgVo" parameterType="Integer">
+	    SELECT IMG_ID AS imgId
+           	 , IMG_ORIGINNAME AS imgOriginName
+           	 , IMG_SAVENAME AS imgSaveName
+           	 , IMG_SAVEPATH AS imgSavePath
+           	 , IMG_SIZE AS imgSize
+           	 , IMG_FORMAT AS imgFormat
+           	 , IMG_REGIST_DT AS imgRegisterDt
+           	 , DEL_YN AS delYn
+           	 , IMGBOARD_ID AS imgBoardId
+           	 , IMG_UPDATE_DT AS imgUpdateDt 
+         FROM TB_IMGBOARD_IMG
+         WHERE DEL_YN = 'N'
+         AND IMGBOARD_ID =#{imgBoardId}
+	</select>
+	
+	<!-- 이미지경로 찾기 -->
+	<select id="getImgPath" resultType="String" parameterType="Integer">
+		SELECT IMG_SAVEPATH
+		FROM TB_IMGBOARD_IMG
+		WHERE IMG_ID = #{imgId}
+	</select>
+	
+	<!-- 이미지 삭제 -->
+	<update id="delImg" parameterType="Integer">
+		UPDATE TB_IMGBOARD_IMG
+		SET DEL_YN = 'Y'
+		WHERE IMG_ID = #{imgId}
+		
+	</update>
+	
+	<!-- 이미지 여럿 삭제 -->
+	<update id="delImgMulti" parameterType="java.util.List">
+		UPDATE TB_IMGBOARD_IMG
+		SET DEL_YN = 'Y'
+		WHERE  IMG_ID IN (
+		<foreach collection="list"  item="originImgId" separator="," >
+       	  #{originImgId}
+     	</foreach>
+		) 
+		
+	</update>
+</mapper>

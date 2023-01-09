@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="egovframework.fusion.imgboard.service.ImgBoardLikeMapper">
+	<!-- 처음 찜했을 때 (로그정보)-->
+	<insert id="insLikeInfo" parameterType="imgBoardLikeVo">
+		INSERT INTO TB_IMGBOARD_LIKE
+		VALUES (
+				LIKE_SEQ.NEXTVAL
+			   ,#{likeYn}
+			   ,#{pushLikeUser}
+			   ,#{imgBoardId}
+			   ,SYSDATE
+			   )
+	</insert>
+	
+	<!-- 처음 눌렀을 때 (카운트정보) -->
+	<insert id="insLikeCntInfo" parameterType="imgBoardLikeCntVo">
+		INSERT INTO TB_IMGBOARD_LIKE_CNT
+		VALUES (
+				LIKECNT_SEQ.NEXTVAL
+			   ,#{imgBoardId}
+			   ,#{pushLikeUser}
+			   ,#{likeYn}
+			   ,SYSDATE
+			   )
+	</insert>
+	
+	<!-- 나의 좋아요 여부 상태 조회 (수정해야될듯)-->
+	<select id="getLikeYn" resultType="imgBoardLikeCntVo" parameterType="String">
+		<!--  SELECT LIKE_CNT_ID likeCntId
+			  , IMGBOARD_ID AS imgBoardId
+			  , PUSHLIKE_USER AS pushLikeUser
+			  , LIKE_YN AS likeYn
+			  , LIKECNT_REGIST_DT AS likeCnt
+		 FROM TB_IMGBOARD_LIKE_CNT 
+		 WHERE PUSHLIKE_USER = #{userId}
+		 ORDER BY like_cnt_id DESC
+	 -->
+	  SELECT LIKE_CNT_ID likeCntId
+			  , IMGBOARD_ID AS imgBoardId
+			  , PUSHLIKE_USER AS pushLikeUser
+			  , LIKE_YN AS likeYn
+			  , LIKECNT_REGIST_DT AS likeCntRegistDt
+		 FROM TB_IMGBOARD_LIKE_CNT 
+		 WHERE PUSHLIKE_USER = #{userId}
+		 ORDER BY like_cnt_id DESC
+	</select>
+	
+	<!-- 좋아요 여부 변경 (카운트 테이블 정보)-->
+	<update id="upLikeYn" parameterType="imgBoardLikeCntVo"> 
+		UPDATE TB_IMGBOARD_LIKE_CNT
+		SET LIKE_YN = #{likeYn}
+		WHERE PUSHLIKE_USER = #{pushLikeUser}
+		  AND IMGBOARD_ID = #{imgBoardId}
+	</update>
+	
+	<!-- 등록했는지  -->
+	<select id="getLikeYnRes" parameterType="imgBoardLikeCntVo" resultType="Integer">
+		SELECT COUNT(IMGBOARD_ID) 
+	    FROM TB_IMGBOARD_LIKE_CNT
+	    WHERE PUSHLIKE_USER = #{pushLikeUser}
+	    AND IMGBOARD_ID = #{imgBoardId};
+	</select>
+</mapper>

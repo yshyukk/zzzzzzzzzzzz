@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="egovframework.fusion.imgboard.service.ImgBoardMapper">
+
+	<!-- 이미지 정보 가져와서 뿌려주기 -->
+	<select id="getImgBoard" resultType="ImgBoardListDTO" parameterType="pagingVo">  
+   	SELECT FB.*
+   	  FROM (
+   		    SELECT ROWNUM AS row_num, FA.*
+   		    FROM 
+	   		    ( 
+   				 SELECT A.IMGBOARD_ID AS imgBoardId
+		 	   , COUNT(B.LIKE_CNT_ID) AS likeCnt 
+		 	   , A.TITLE as title
+		 	   , TO_CHAR(A.IMGBOARD_CONTENT) as imgBoardContent
+		 	   , A.IMGBOARD_WRITER imgBoardWriter
+		 	   , A.THUMBNAIL_NAME thumbNailName
+		 	   , A.DEL_YN delYn
+		 	   ,
+	     	 CASE WHEN 
+	       		   A.IMGBOARD_ID IN 
+	       		    			   (   
+	          						 SELECT IMGBOARD_ID 
+	           		 				 FROM TB_IMGBOARD_LIKE_CNT
+	           					     WHERE PUSHLIKE_USER = #{userId} AND LIKE_YN='Y'
+	       						    )
+		     THEN 'Y' ELSE 'N' END AS LIKED
+		   	 FROM TB_IMGBOARD A
+		   	 LEFT JOIN TB_IMGBOARD_LIKE_CNT B 
+		      		ON A.IMGBOARD_ID = B.IMGBOARD_ID
+		   	<if test="search == 'tag'">   
+		   	 LEFT JOIN TB_HASHTAG C
+			  		ON A.IMGBOARD_ID = C.IMGBOARD_ID
+		    </if>
+		     WHERE A.DEL_YN = 'N'
+		    <if test="search == 'title'">
+		     AND A.TITLE LIKE '%'||#{searchText}||'%'
+		    </if>
+		    <if test="search == 'writer'">
+		     AND A.IMGBOARD_WRITER LIKE '%'||#{searchText}||'%'
+		    </if>
+		    <if test="search == 'content'">
+		     AND TO_CHAR(A.IMGBOARD_CONTENT) LIKE '%'||#{searchText}||'%'
+		    </if>
+		    <if test="search == 'all'">
+		     AND ( A.TITLE LIKE '%'||#{searchText}||'%'
+		       	  OR A.IMGBOARD_WRITER LIKE '%'||#{searchText}||'%'
+		       	  OR TO_CHAR(A.IMGBOARD_CONTENT) LIKE '%'||#{searchText}||'%')
+		    </if>
+		    <if test="search == 'tag'">
+		     	AND C.HASHTAG = #{searchText}
+		    </if>
+		    GROUP BY A.IMGBOARD_ID
+		   		   , A.TITLE
+		   		   , TO_CHAR(A.IMGBOARD_CONTENT)
+		 	  	   , A.IMGBOARD_WRITER
+		 	  	   , A.THUMBNAIL_NAME  
+		  		   , B.LIKE_CNT_ID
+		  		   , A.DEL_YN
+		    ORDER BY A.IMGBOARD_ID DESC)FA
+	        )FB
+	WHERE row_num >=#{startIndex} and row_num <![CDATA[<= ]]>#{endIndex}
+  		  
+  		  
+	</select>
+
+	<!-- 게시글 정보 등록 -->
+	<insert id="insImgBoard" parameterType="imgBoardVo">
+		INSERT INTO TB_IMGBOARD
+			(
+			   IMGBOARD_ID
+			 , TITLE
+			 , IMGBOARD_CONTENT
+			 , IMGBOARD_REGIST_DT
+			 , DEL_YN
+			 , IMGBOARD_WRITER
+			)
+		VALUES (
+				IMGBOARD_SEQ.NEXTVAL
+			   ,#{title}
+			   ,#{imgBoardContent}
+			   ,SYSDATE
+			   ,'N'
+			   ,#{imgBoardWriter}
+			   )
+	</insert>
+	
+	<select id="getMaxBoardId" resultType="Integer" parameterType="String"> 
+		SELECT MAX(IMGBOARD_ID)
+		FROM TB_IMGBOARD
+		WHERE IMGBOARD_WRITER = #{userId}
+	</select>
+	
+	<!-- 썸네일 등록 -->
+	<update id="insThumbNail" parameterType="Integer">
+		UPDATE TB_IMGBOARD
+		SET THUMBNAIL_NAME = ( SELECT CONCAT(CONCAT(IMG_SAVEPATH, '/'), IMG_SAVENAME)
+						 		FROM (
+						   		 	  SELECT ROWNUM, IMG_SAVENAME, IMG_SAVEPATH
+						   		 	  FROM TB_IMGBOARD_IMG
+						   		 	  WHERE IMGBOARD_ID = #{imgBoardId}
+						   		 	  AND DEL_YN = 'N'
+						 			  AND ROWNUM = 1)
+							  )
+	    WHERE IMGBOARD_ID = #{imgBoardId}	
+	
+	
+	</update>
+	<!-- 전체 게시글 수 -->
+	<select id="searchTotal" resultType="Integer" parameterType="imgBoardVo">
+		/* egovframework.fusion.imgboard.service.ImgBoardMapper.searchTotal */
+		
+		SELECT COUNT(IMGBOARD_ID)
+		FROM TB_IMGBOARD
+		WHERE DEL_YN = 'N'
+	</select>
+	
+	<!-- 검색결과 갯수 구하기 -->
+	<select id="searchTotalCount" resultType="Integer" parameterType="pagingVo">
+	 	 SELECT  COUNT(1)
+	       FROM TB_IMGBOARD A
+		   JOIN TB_USER B
+			 ON A.IMGBOARD_WRITER = B.ID
+		  <if test="search == 'tag'">
+			   JOIN TB_HASHTAG C
+			   ON A.IMGBOARD_ID = C.IMGBOARD_ID
+			  
+		  </if>
+	        WHERE A.DEL_YN = 'N'
+	      <if test="search == 'title'">
+           AND A.TITLE LIKE '%'||#{searchText}||'%'
+           </if>
+           <if test="search == 'writer'">
+           AND A.IMGBOARD_WRITER LIKE '%'||#{searchText}||'%'
+           </if>
+           <if test="search == 'content'">
+           AND A.IMGBOARD_CONTENT LIKE '%'||#{searchText}||'%'
+           </if>
+           <if test="search == 'all'">
+           AND ( A.TITLE LIKE '%'||#{searchText}||'%'
+           		 OR A.IMGBOARD_WRITER LIKE '%'||#{searchText}||'%'
+           		 OR A.IMGBOARD_CONTENT LIKE '%'||#{searchText}||'%')
+           </if> 
+           <if test="search == 'tag'">
+	          	AND C.HASHTAG = #{searchText}
+	       </if>  
+	</select>
+	
+	<!-- 게시글 상세조회 -->
+	<select id="getImgBoardDetailInfo" resultType="imgBoardVo" parameterType="Integer">
+		SELECT TITLE
+		     , IMGBOARD_CONTENT AS imgBoardContent
+		     , IMGBOARD_WRITER AS imgBoardWriter
+		     , THUMBNAIL_NAME AS thumbNailName
+		     , IMGBOARD_REGIST_DT AS imgBoardRegistDt
+		     , DEL_YN AS delYn
+		FROM TB_IMGBOARD
+		WHERE IMGBOARD_ID =#{imgBoardId}
+	</select>
+	
+	<!-- 게시글 수정 -->
+	<update id="updateContents" parameterType="imgBoardVo">
+		UPDATE TB_IMGBOARD
+		   SET TITLE = #{title}
+		     , IMGBOARD_CONTENT = #{imgBoardContent}
+		WHERE IMGBOARD_ID = #{imgBoardId}
+	</update>
+	
+	<!-- 게시글 삭제 -->
+	<update id="delImgBoard" parameterType="Integer">
+		UPDATE TB_IMGBOARD
+		   SET DEL_YN = 'Y'
+		WHERE IMGBOARD_ID = #{imgBoardId}
+	</update>
+	
+
+</mapper>
